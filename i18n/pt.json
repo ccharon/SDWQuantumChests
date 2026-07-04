@@ -1,0 +1,7 @@
+{
+    "chest.name": "Baú Quântico",
+    "chest.description": "Um de um par. Sempre compartilha seu inventário com seu parceiro entrelaçado, não importa onde cada um seja colocado. Aviso: se o parceiro deixar de existir, este baú e tudo o que houver dentro dele também desaparecerão.",
+    "bigchest.name": "Baú Quântico Grande",
+    "bigchest.description": "Um baú quântico de maior capacidade. Um de um par. Sempre compartilha seu inventário com seu parceiro entrelaçado, não importa onde cada um seja colocado. Aviso: se o parceiro deixar de existir, este baú e tudo o que houver dentro dele também desaparecerão.",
+    "collapse.message": "Um baú quântico perdeu seu parceiro entrelaçado e deixou de existir, levando seu conteúdo junto."
+}

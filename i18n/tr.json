@@ -1,0 +1,7 @@
+{
+    "chest.name": "Kuantum Sandığı",
+    "chest.description": "Bir çiftten biri. Nereye yerleştirilirse yerleştirilsin, dolanık ortağıyla envanterini her zaman paylaşır. Uyarı: ortağı bir gün var olmaktan çıkarsa, bu sandık ve içindeki her şey de yok olur.",
+    "bigchest.name": "Büyük Kuantum Sandığı",
+    "bigchest.description": "Daha yüksek kapasiteli bir kuantum sandığı. Bir çiftten biri. Nereye yerleştirilirse yerleştirilsin, dolanık ortağıyla envanterini her zaman paylaşır. Uyarı: ortağı bir gün var olmaktan çıkarsa, bu sandık ve içindeki her şey de yok olur.",
+    "collapse.message": "Bir kuantum sandığı dolanık ortağını kaybetti ve içindekilerle birlikte yok oldu."
+}

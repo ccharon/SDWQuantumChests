@@ -1,0 +1,7 @@
+{
+    "chest.name": "Kvantumláda",
+    "chest.description": "Egy pár egyik tagja. Bárhová is helyezik le őket, mindig megosztja a raktárát összefonódott párjával. Figyelem: ha a párja valaha megszűnik létezni, ez a láda és mindaz, ami benne van, szintén eltűnik.",
+    "bigchest.name": "Nagy Kvantumláda",
+    "bigchest.description": "Egy nagyobb kapacitású kvantumláda. Egy pár egyik tagja. Bárhová is helyezik le őket, mindig megosztja a raktárát összefonódott párjával. Figyelem: ha a párja valaha megszűnik létezni, ez a láda és mindaz, ami benne van, szintén eltűnik.",
+    "collapse.message": "Egy kvantumláda elvesztette összefonódott párját, és megszűnt létezni, magával víve a tartalmát is."
+}

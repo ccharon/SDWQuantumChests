@@ -1,0 +1,7 @@
+{
+    "chest.name": "Coffre Quantique",
+    "chest.description": "L'un d'une paire. Partage toujours son inventaire avec son partenaire intriqué, peu importe où chacun est placé. Attention : si son partenaire venait à disparaître, ce coffre et tout son contenu disparaîtront également.",
+    "bigchest.name": "Grand Coffre Quantique",
+    "bigchest.description": "Un coffre quantique à plus grande capacité. L'un d'une paire. Partage toujours son inventaire avec son partenaire intriqué, peu importe où chacun est placé. Attention : si son partenaire venait à disparaître, ce coffre et tout son contenu disparaîtront également.",
+    "collapse.message": "Un coffre quantique a perdu son partenaire intriqué et s'est effondré, emportant son contenu avec lui."
+}

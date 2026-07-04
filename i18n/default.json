@@ -1,0 +1,7 @@
+{
+    "chest.name": "Quantum Chest",
+    "chest.description": "One of a pair. Always shares its inventory with its entangled partner, no matter where either is placed. Warning: if its partner ever ceases to exist, this chest and everything inside it vanish too.",
+    "bigchest.name": "Large Quantum Chest",
+    "bigchest.description": "A higher-capacity quantum chest. One of a pair. Always shares its inventory with its entangled partner, no matter where either is placed. Warning: if its partner ever ceases to exist, this chest and everything inside it vanish too.",
+    "collapse.message": "A quantum chest lost its entangled partner and collapsed out of existence, taking its contents with it."
+}

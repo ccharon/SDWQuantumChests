@@ -1,0 +1,8 @@
+bin/
+obj/
+.idea/
+.vs/
+*.user
+
+# personal/local tool settings, not meant to be shared
+.claude/settings.local.json
