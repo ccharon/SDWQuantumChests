@@ -1,7 +1,7 @@
 {
     "chest.name": "Coffre Quantique",
-    "chest.description": "L'un des deux d'une paire intriquée. Partage son inventaire avec son partenaire, quelle que soit la distance qui les sépare. Si le partenaire venait à disparaître, ce coffre s'effondrerait et cesserait d'exister, avec tout son contenu.",
+    "chest.description": "Fait partie d'une paire intriquée. Partage son inventaire avec son coffre lié, quelle que soit la distance qui les sépare. Si l'un des coffres liés est perdu, l'autre s'effondre et cesse d'exister, avec tout ce qu'il contient.",
     "bigchest.name": "Grand Coffre Quantique",
-    "bigchest.description": "Un coffre quantique plus spacieux. L'un des deux d'une paire intriquée, partageant son inventaire avec son partenaire, quelle que soit la distance. Si le partenaire disparaît, ce coffre s'effondre et cesse d'exister, avec tout son contenu.",
-    "collapse.message": "Un coffre quantique a perdu son partenaire intriqué et s'est effondré, disparaissant avec tout son contenu."
+    "bigchest.description": "Une version plus grande avec une capacité de stockage accrue. Fait partie d'une paire intriquée, il partage son inventaire avec son coffre lié, quelle que soit la distance qui les sépare. Si l'un des coffres liés est perdu, l'autre s'effondre et cesse d'exister, avec tout ce qu'il contient.",
+    "collapse.message": "Un Coffre Quantique a perdu son homologue intriqué et s'est effondré, cessant d'exister avec tout ce qu'il contenait."
 }

@@ -1,7 +1,7 @@
 {
     "chest.name": "Baú Quântico",
-    "chest.description": "Um dos dois de um par entrelaçado. Compartilha seu inventário com seu parceiro, não importa a distância entre eles. Se o parceiro for perdido, este baú entra em colapso e deixa de existir, junto com todo o seu conteúdo.",
+    "chest.description": "Parte de um par entrelaçado. Compartilha seu inventário com seu baú vinculado, independentemente da distância entre eles. Se um dos baús vinculados for perdido, o outro entra em colapso e deixa de existir, junto com tudo o que há dentro dele.",
     "bigchest.name": "Baú Quântico Grande",
-    "bigchest.description": "Um baú quântico mais espaçoso. Um dos dois de um par entrelaçado, compartilhando seu inventário com seu parceiro, não importa a distância. Se o parceiro for perdido, este baú entra em colapso e deixa de existir, junto com todo o seu conteúdo.",
-    "collapse.message": "Um baú quântico perdeu seu parceiro entrelaçado e entrou em colapso, deixando de existir junto com todo o seu conteúdo."
+    "bigchest.description": "Uma versão maior com maior capacidade de armazenamento. Parte de um par entrelaçado, compartilha seu inventário com seu baú vinculado, independentemente da distância entre eles. Se um dos baús vinculados for perdido, o outro entra em colapso e deixa de existir, junto com tudo o que há dentro dele.",
+    "collapse.message": "Um Baú Quântico perdeu sua contraparte entrelaçada e entrou em colapso, deixando de existir junto com tudo o que continha."
 }

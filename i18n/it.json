@@ -1,7 +1,7 @@
 {
     "chest.name": "Baule Quantico",
-    "chest.description": "Uno dei due di una coppia entangled. Condivide il proprio inventario con il partner, non importa quanto siano distanti. Se il partner viene perso, questo baule collassa e cessa di esistere, insieme a tutto il suo contenuto.",
+    "chest.description": "Parte di una coppia entangled. Condivide il proprio inventario con il baule collegato, indipendentemente dalla distanza che li separa. Se uno dei bauli collegati viene perso, l'altro collassa e cessa di esistere, insieme a tutto il suo contenuto.",
     "bigchest.name": "Baule Quantico Grande",
-    "bigchest.description": "Un baule quantico più capiente. Uno dei due di una coppia entangled, che condivide il proprio inventario con il partner, non importa la distanza. Se il partner viene perso, questo baule collassa e cessa di esistere, insieme a tutto il suo contenuto.",
-    "collapse.message": "Un baule quantico ha perso il proprio partner entangled ed è collassato, cessando di esistere insieme a tutto il suo contenuto."
+    "bigchest.description": "Una versione più grande con maggiore capacità di stoccaggio. Parte di una coppia entangled, condivide il proprio inventario con il baule collegato, indipendentemente dalla distanza che li separa. Se uno dei bauli collegati viene perso, l'altro collassa e cessa di esistere, insieme a tutto il suo contenuto.",
+    "collapse.message": "Un Baule Quantico ha perso la sua controparte entangled ed è collassato, cessando di esistere insieme a tutto il suo contenuto."
 }
