@@ -7,6 +7,7 @@ using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
 using StardewValley.Inventories;
+using StardewValley.Locations;
 using StardewValley.Menus;
 using StardewValley.Objects;
 using SObject = StardewValley.Object;
@@ -14,18 +15,24 @@ using SObject = StardewValley.Object;
 namespace QuantumChests
 
 {
+    /// <summary>
+    /// Tracks entangled chest pairs at runtime: keeps their colors in sync, and collapses a pair - destroying the
+    /// surviving chest and its contents - if one half is ever irrecoverably lost.
+    /// </summary>
     internal sealed class QuantumChestService
     {
         private readonly IMonitor monitor;
         private readonly ITranslationHelper translation;
         private readonly IReflectionHelper reflection;
+        private readonly IMultiplayerHelper multiplayer;
         private readonly ConditionalWeakTable<Chest, object> wiredForColorSync = new();
 
-        public QuantumChestService(IMonitor monitor, ITranslationHelper translation, IReflectionHelper reflection)
+        public QuantumChestService(IMonitor monitor, ITranslationHelper translation, IReflectionHelper reflection, IMultiplayerHelper multiplayer)
         {
             this.monitor = monitor;
             this.translation = translation;
             this.reflection = reflection;
+            this.multiplayer = multiplayer;
         }
 
         public void RegisterEvents(IModEvents events)
@@ -78,19 +85,21 @@ namespace QuantumChests
 
             foreach (SObject obj in this.EnumerateAllObjectsIncludingNested())
             {
+                // count by Stack, not by a flat +1: a pair's two physical halves can be merged into a single
+                // Stack=2 item, which is still one object reference representing both members (see ARCHITECTURE.md)
                 if (Matches(obj, pairId))
-                    count++;
+                    count += Math.Max(obj.Stack, 1);
             }
 
-            Utility.ForEachLocation(location =>
+            this.ForEachRelevantLocation(location =>
             {
                 foreach (Debris d in location.debris)
                 {
                     if (d.item is SObject obj && Matches(obj, pairId))
-                        count++;
+                        count += Math.Max(obj.Stack, 1);
                 }
                 return true;
-            }, includeInteriors: true, includeGenerated: true);
+            });
 
             return count;
         }
@@ -101,12 +110,12 @@ namespace QuantumChests
             var results = new List<SObject>();
             var visited = new HashSet<SObject>(ReferenceEqualityComparer.Instance);
 
-            Utility.ForEachLocation(location =>
+            this.ForEachRelevantLocation(location =>
             {
                 foreach (SObject obj in location.objects.Values)
                     CollectRecursively(obj, results, visited);
                 return true;
-            }, includeInteriors: true, includeGenerated: true);
+            });
 
             foreach (Farmer farmer in Game1.getAllFarmers())
             {
@@ -143,6 +152,45 @@ namespace QuantumChests
                 return null;
 
             return this.reflection.GetField<Item>(menu, "heldItem", required: false)?.GetValue();
+        }
+
+        /// <summary>Visit every location relevant to this player: the same as <see cref="Utility.ForEachLocation"/> for the host, but <see cref="IMultiplayerHelper.GetActiveLocations"/> for a non-host farmhand (see ARCHITECTURE.md for why <see cref="Game1.locations"/> alone isn't safe to scan for a farmhand).</summary>
+        private void ForEachRelevantLocation(Func<GameLocation, bool> action)
+        {
+            if (Context.IsMainPlayer)
+            {
+                Utility.ForEachLocation(action, includeInteriors: true, includeGenerated: true);
+                return;
+            }
+
+            foreach (GameLocation location in this.multiplayer.GetActiveLocations())
+            {
+                if (!action(location))
+                    return;
+
+                bool shouldContinue = true;
+                location.ForEachInstancedInterior(interior =>
+                {
+                    if (action(interior))
+                        return true;
+                    shouldContinue = false;
+                    return false;
+                });
+                if (!shouldContinue)
+                    return;
+            }
+
+            foreach (MineShaft mine in MineShaft.activeMines)
+            {
+                if (!action(mine))
+                    return;
+            }
+
+            foreach (VolcanoDungeon volcano in VolcanoDungeon.activeLevels)
+            {
+                if (!action(volcano))
+                    return;
+            }
         }
 
         private static void CollectRecursively(SObject obj, List<SObject> results, HashSet<SObject> visited)
@@ -207,7 +255,7 @@ namespace QuantumChests
 
         private void WireAllPlacedChests()
         {
-            Utility.ForEachLocation(location =>
+            this.ForEachRelevantLocation(location =>
             {
                 foreach (SObject obj in location.objects.Values)
                 {
@@ -215,7 +263,7 @@ namespace QuantumChests
                         this.EnsureColorSyncWired(chest);
                 }
                 return true;
-            }, includeInteriors: true, includeGenerated: true);
+            });
         }
 
         private void GrantRecipesIfNeeded()
@@ -266,7 +314,7 @@ namespace QuantumChests
         private bool RemoveObjectFromWherever(SObject target)
         {
             bool removedFromMap = false;
-            Utility.ForEachLocation(location =>
+            this.ForEachRelevantLocation(location =>
             {
                 foreach (KeyValuePair<Vector2, SObject> pair in location.objects.Pairs)
                 {
@@ -278,7 +326,7 @@ namespace QuantumChests
                     }
                 }
                 return true;
-            }, includeInteriors: true, includeGenerated: true);
+            });
             if (removedFromMap)
                 return true;
 

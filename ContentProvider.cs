@@ -5,6 +5,10 @@ using StardewValley.GameData.BigCraftables;
 
 namespace QuantumChests
 {
+    /// <summary>
+    /// Adds the two chest tiers' <c>Data/BigCraftables</c> and <c>Data/CraftingRecipes</c> entries, and
+    /// re-applies them whenever the game's language changes so their translated text stays in sync.
+    /// </summary>
     internal sealed class ContentProvider
     {
         private readonly IModHelper helper;
@@ -20,7 +24,7 @@ namespace QuantumChests
             events.Content.LocaleChanged += this.OnLocaleChanged;
         }
 
-        /// <summary>The translated text baked into <see cref="OnAssetRequested"/> is resolved once, whenever the asset is first loaded - switching languages afterward doesn't get SMAPI to re-run that edit on its own (it only unloads its own vanilla asset cache), so the data would otherwise stay stuck in whatever language was active at that first load. Force it to be regenerated for the new language.</summary>
+        /// <summary>Force the translated text baked into <see cref="OnAssetRequested"/> to be regenerated for the new language (see ARCHITECTURE.md for why this doesn't happen on its own).</summary>
         private void OnLocaleChanged(object? sender, LocaleChangedEventArgs e)
         {
             this.helper.GameContent.InvalidateCache("Data/BigCraftables");
@@ -35,35 +39,8 @@ namespace QuantumChests
                 {
                     var data = asset.AsDictionary<string, BigCraftableData>().Data;
 
-                    data[ModConstants.ChestId] = new BigCraftableData
-                    {
-                        Name = ModConstants.ChestId,
-                        DisplayName = this.helper.Translation.Get("chest.name"),
-                        Description = this.helper.Translation.Get("chest.description"),
-                        Price = 2000,
-                        Fragility = 0,
-                        CanBePlacedOutdoors = true,
-                        CanBePlacedIndoors = true,
-                        IsLamp = false,
-                        Texture = null, // vanilla TileSheets/Craftables - looks identical to a regular chest; the glow marks it as quantum
-                        SpriteIndex = 130, // same sprite as the vanilla Chest
-                        ContextTags = new List<string> { "automate_storage" }, // Automate only auto-tags its own hardcoded vanilla chest IDs, not ours
-                    };
-
-                    data[ModConstants.LargeChestId] = new BigCraftableData
-                    {
-                        Name = ModConstants.LargeChestId,
-                        DisplayName = this.helper.Translation.Get("bigchest.name"),
-                        Description = this.helper.Translation.Get("bigchest.description"),
-                        Price = 4000,
-                        Fragility = 0,
-                        CanBePlacedOutdoors = true,
-                        CanBePlacedIndoors = true,
-                        IsLamp = false,
-                        Texture = null, // vanilla TileSheets/Craftables - looks identical to a regular Big Chest
-                        SpriteIndex = 304, // same sprite as the vanilla Big Chest
-                        ContextTags = new List<string> { "automate_storage" }, // Automate only auto-tags its own hardcoded vanilla chest IDs, not ours
-                    };
+                    data[ModConstants.ChestId] = this.CreateChestData(ModConstants.ChestId, "chest", price: 2000, spriteIndex: 130);
+                    data[ModConstants.LargeChestId] = this.CreateChestData(ModConstants.LargeChestId, "bigchest", price: 4000, spriteIndex: 304);
                 });
             }
             else if (e.NameWithoutLocale.IsEquivalentTo("Data/CraftingRecipes"))
@@ -72,13 +49,44 @@ namespace QuantumChests
                 {
                     IDictionary<string, string> data = asset.AsDictionary<string, string>().Data;
 
-                    data[ModConstants.ChestId] =
-                        $"337 2 787 2/Home/{ModConstants.ChestId} 2/true/null/{this.helper.Translation.Get("chest.name")}";
-
-                    data[ModConstants.LargeChestId] =
-                        $"337 4 787 3/Home/{ModConstants.LargeChestId} 2/true/null/{this.helper.Translation.Get("bigchest.name")}";
+                    // "(BC)130" must stay qualified: unqualified "130" would resolve to the Object type first (Tuna),
+                    // never reaching the BigCraftable Chest sharing that same numeric ID
+                    data[ModConstants.ChestId] = this.CreateRecipeData(ModConstants.ChestId, "337 2 787 2 (BC)130 2", "chest.name");
+                    data[ModConstants.LargeChestId] = this.CreateRecipeData(ModConstants.LargeChestId, "337 4 787 2 BigChest 2", "bigchest.name");
                 });
             }
+        }
+
+        /// <summary>Build a <c>Data/BigCraftables</c> entry for one of our chest tiers.</summary>
+        /// <param name="itemId">The unqualified item ID.</param>
+        /// <param name="translationPrefix">The shared prefix for this tier's "name" and "description" translation keys (e.g. <c>"chest"</c> for <c>"chest.name"</c>/<c>"chest.description"</c>).</param>
+        /// <param name="price">The purchase/sell price.</param>
+        /// <param name="spriteIndex">The sprite index into vanilla's <c>TileSheets/Craftables</c>.</param>
+        private BigCraftableData CreateChestData(string itemId, string translationPrefix, int price, int spriteIndex)
+        {
+            return new BigCraftableData
+            {
+                Name = itemId,
+                DisplayName = this.helper.Translation.Get($"{translationPrefix}.name"),
+                Description = this.helper.Translation.Get($"{translationPrefix}.description"),
+                Price = price,
+                Fragility = 0,
+                CanBePlacedOutdoors = true,
+                CanBePlacedIndoors = true,
+                IsLamp = false,
+                Texture = null, // vanilla TileSheets/Craftables - looks identical to the vanilla chest tier it shares a sprite with
+                SpriteIndex = spriteIndex,
+                ContextTags = new List<string> { "automate_storage" }, // Automate only auto-tags its own hardcoded vanilla chest IDs, not ours
+            };
+        }
+
+        /// <summary>Build a <c>Data/CraftingRecipes</c> entry for one of our chest tiers.</summary>
+        /// <param name="itemId">The unqualified item ID being crafted.</param>
+        /// <param name="ingredients">The recipe's ingredient list, in vanilla's <c>"id count id count..."</c> format.</param>
+        /// <param name="nameTranslationKey">The translation key for the recipe's display name.</param>
+        private string CreateRecipeData(string itemId, string ingredients, string nameTranslationKey)
+        {
+            return $"{ingredients}/Home/{itemId} 2/true/null/{this.helper.Translation.Get(nameTranslationKey)}";
         }
     }
 }
