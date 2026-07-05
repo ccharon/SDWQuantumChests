@@ -1,7 +1,7 @@
 {
     "chest.name": "Quantentruhe",
-    "chest.description": "Eine von einem Paar. Teilt sich immer das Inventar mit ihrem verschränkten Partner, egal wo beide aufgestellt sind. Achtung: Falls der Partner jemals zu existieren aufhört, verschwinden diese Truhe und ihr gesamter Inhalt ebenfalls.",
+    "chest.description": "Eine Hälfte eines verschränkten Paares. Teilt sich das Inventar mit ihrem Partner, egal wie weit sie voneinander entfernt sind. Geht der Partner verloren, kollabiert diese Truhe aus der Existenz – mitsamt Inhalt.",
     "bigchest.name": "Große Quantentruhe",
-    "bigchest.description": "Eine Quantentruhe mit höherer Kapazität. Eine von einem Paar. Teilt sich immer das Inventar mit ihrem verschränkten Partner, egal wo beide aufgestellt sind. Achtung: Falls der Partner jemals zu existieren aufhört, verschwinden diese Truhe und ihr gesamter Inhalt ebenfalls.",
-    "collapse.message": "Eine Quantentruhe hat ihren verschränkten Partner verloren und ist aus der Existenz kollabiert – zusammen mit ihrem Inhalt."
+    "bigchest.description": "Eine geräumigere Quantentruhe. Eine Hälfte eines verschränkten Paares, das sich das Inventar teilt, ganz gleich wie groß die Entfernung ist. Geht der Partner verloren, kollabiert diese Truhe aus der Existenz – mitsamt Inhalt.",
+    "collapse.message": "Eine Quantentruhe hat ihren verschränkten Partner verloren und ist aus der Existenz kollabiert – mitsamt Inhalt."
 }

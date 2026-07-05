@@ -1,7 +1,7 @@
 {
     "chest.name": "Kvantumláda",
-    "chest.description": "Egy pár egyik tagja. Bárhová is helyezik le őket, mindig megosztja a raktárát összefonódott párjával. Figyelem: ha a párja valaha megszűnik létezni, ez a láda és mindaz, ami benne van, szintén eltűnik.",
+    "chest.description": "Egy összefonódott pár egyik fele. Bármilyen távol is legyenek egymástól, megosztja a raktárát a párjával. Ha a párja elvész, ez a láda a tartalmával együtt megszűnik létezni.",
     "bigchest.name": "Nagy Kvantumláda",
-    "bigchest.description": "Egy nagyobb kapacitású kvantumláda. Egy pár egyik tagja. Bárhová is helyezik le őket, mindig megosztja a raktárát összefonódott párjával. Figyelem: ha a párja valaha megszűnik létezni, ez a láda és mindaz, ami benne van, szintén eltűnik.",
-    "collapse.message": "Egy kvantumláda elvesztette összefonódott párját, és megszűnt létezni, magával víve a tartalmát is."
+    "bigchest.description": "Egy nagyobb kapacitású kvantumláda. Egy összefonódott pár egyik fele, amely megosztja a raktárát a párjával, bármekkora is legyen köztük a távolság. Ha a párja elvész, a tartalmával együtt megszűnik létezni.",
+    "collapse.message": "Egy kvantumláda elvesztette összefonódott párját, és a tartalmával együtt megszűnt létezni."
 }
