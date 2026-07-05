@@ -456,4 +456,29 @@ namespace QuantumChests
             __result = !string.IsNullOrEmpty(pairIdA) && pairIdA == pairIdB;
         }
     }
+
+    /// <summary>
+    /// Every inventory menu's trash can (<c>MenuWithInventory</c>, <c>InventoryPage</c>, <c>CraftingPage</c>,
+    /// <c>JunimoNoteMenu</c>) discards its held item by calling <see cref="Utility.trashItem"/> directly - which
+    /// never touches <see cref="Farmer.Items"/> or <see cref="GameLocation.objects"/>, so neither event
+    /// <see cref="QuantumChestService"/> listens for (<c>Player.InventoryChanged</c>, <c>World.ObjectListChanged</c>)
+    /// ever fires. Without this patch, trashing one half of a pair leaves its partner behind until some unrelated
+    /// event (e.g. picking the partner up) happens to trigger a rescan.
+    /// </summary>
+    internal sealed class TrashCanDestructionPatcher : BasePatcher
+    {
+        public override void Apply(Harmony harmony, IMonitor monitor)
+        {
+            harmony.Patch(
+                original: RequireMethod<Utility>(nameof(Utility.trashItem)),
+                postfix: this.GetHarmonyMethod(nameof(Postfix))
+            );
+        }
+
+        private static void Postfix(Item item)
+        {
+            if (item.modData.TryGetValue(ModConstants.PairIdKey, out string? pairId) && !string.IsNullOrEmpty(pairId))
+                ModEntry.Service.HandlePotentialDestruction(pairId);
+        }
+    }
 }

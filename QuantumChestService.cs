@@ -273,7 +273,7 @@ namespace QuantumChests
         }
 
         /// <summary>A pair member was removed from a location or inventory. If only one (or zero) member is left anywhere, react accordingly.</summary>
-        private void HandlePotentialDestruction(string pairId)
+        public void HandlePotentialDestruction(string pairId)
         {
             int remaining = this.CountPairMembers(pairId);
 

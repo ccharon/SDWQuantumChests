@@ -175,6 +175,12 @@ testing rather than by inspection alone:
   field instead of `Game1.player.CursorSlotItem` — swapping a freshly-crafted chest onto a slot there displaces
   the old occupant into that field, invisible to the checks above unless specifically read via reflection
   (`GetActiveMenuHeldItem`).
+- Every inventory menu's trash can (`MenuWithInventory`, `InventoryPage`, `CraftingPage`, `JunimoNoteMenu`)
+  discards its held item via `Utility.trashItem` directly — this never touches `Farmer.Items` or
+  `GameLocation.objects`, so neither `Player.InventoryChanged` nor `World.ObjectListChanged` fires for it.
+  Without `TrashCanDestructionPatcher` (a postfix on `Utility.trashItem`), trashing one half of a pair leaves
+  its partner behind in the world until some unrelated event happens to trigger a rescan (found by trashing a
+  chest and observing its partner only vanish once later picked up, rather than immediately).
 
 If a pair drops to exactly 1 remaining member, `CollapsePair` removes the survivor too (wherever it actually is
 — map, top-level inventory, or nested in a container, via `RemoveObjectFromWherever`) and discards the shared

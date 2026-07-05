@@ -28,7 +28,8 @@ namespace QuantumChests
                 new ChestColorInventoryDrawPatcher(),
                 new ChestHitPreservePairPatcher(),
                 new CraftingRecipePairIdPatcher(),
-                new ChestPairStackPatcher()
+                new ChestPairStackPatcher(),
+                new TrashCanDestructionPatcher()
             );
 
             this.Monitor.Log("Quantum Chests loaded.", LogLevel.Debug);
