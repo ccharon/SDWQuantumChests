@@ -1,7 +1,7 @@
 {
     "chest.name": "Quantum Chest",
     "chest.description": "One of an entangled pair. Shares its inventory with its partner, however far apart they are. If the partner is ever lost, this chest collapses out of existence - contents and all.",
-    "bigchest.name": "Large Quantum Chest",
+    "bigchest.name": "Big Quantum Chest",
     "bigchest.description": "A roomier quantum chest. One of an entangled pair, sharing its inventory with its partner no matter the distance. If the partner is lost, this chest collapses out of existence - contents and all.",
     "collapse.message": "A quantum chest lost its entangled partner and collapsed out of existence - contents and all."
 }
