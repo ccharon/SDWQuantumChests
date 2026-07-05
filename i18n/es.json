@@ -1,7 +1,7 @@
 {
     "chest.name": "Cofre Cuántico",
-    "chest.description": "Uno de un par entrelazado. Comparte su inventario con su pareja, sin importar la distancia que los separe. Si la pareja llega a perderse, este cofre colapsa y deja de existir, junto con todo su contenido.",
+    "chest.description": "Forma parte de un par entrelazado. Comparte su inventario con su cofre enlazado, sin importar la distancia que los separe. Si uno de los cofres enlazados se pierde, el otro colapsará y dejará de existir, junto con todo su contenido.",
     "bigchest.name": "Cofre Cuántico Grande",
-    "bigchest.description": "Un cofre cuántico más espacioso. Uno de un par entrelazado que comparte su inventario con su pareja, sin importar la distancia. Si la pareja se pierde, este cofre colapsa y deja de existir, junto con todo su contenido.",
-    "collapse.message": "Un cofre cuántico perdió a su pareja entrelazada y colapsó, dejando de existir junto con todo su contenido."
+    "bigchest.description": "Una versión más espaciosa del Cofre Cuántico. Forma parte de un par entrelazado. Comparte su inventario con su cofre enlazado, sin importar la distancia que los separe. Si uno de los cofres enlazados se pierde, el otro colapsará y dejará de existir, junto con todo su contenido.",
+    "collapse.message": "Un Cofre Cuántico perdió su par entrelazado y colapsó, dejando de existir junto con todo su contenido."
 }
