@@ -2,8 +2,7 @@
 
 A [SMAPI](https://smapi.io/) mod for Stardew Valley 1.6 that adds chests craftable in entangled pairs. Both chests in a pair always share one inventory, no matter where each half is placed - across the farm, in the mines, wherever.
 
-Ever wanted to 
-
+![Quantum entangled chests](./docs/example.png)
 
 ## Features
 
