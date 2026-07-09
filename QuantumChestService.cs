@@ -24,15 +24,13 @@ namespace QuantumChests
     internal sealed class QuantumChestService
     {
         private readonly IMonitor monitor;
-        private readonly ITranslationHelper translation;
         private readonly IReflectionHelper reflection;
         private readonly IMultiplayerHelper multiplayer;
         private readonly ConditionalWeakTable<Chest, object> wiredForColorSync = new();
 
-        public QuantumChestService(IMonitor monitor, ITranslationHelper translation, IReflectionHelper reflection, IMultiplayerHelper multiplayer)
+        public QuantumChestService(IMonitor monitor, IReflectionHelper reflection, IMultiplayerHelper multiplayer)
         {
             this.monitor = monitor;
-            this.translation = translation;
             this.reflection = reflection;
             this.multiplayer = multiplayer;
         }
@@ -380,7 +378,7 @@ namespace QuantumChests
 
                 this.RemoveObjectFromWherever(survivor);
 
-                Game1.addHUDMessage(new HUDMessage(this.translation.Get("collapse.message"), 3));
+                Game1.addHUDMessage(new HUDMessage(I18n.Collapse_Message(), 3));
             }
 
             // the shared contents are not preserved anywhere - they vanish along with both chests

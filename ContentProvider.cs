@@ -39,8 +39,8 @@ namespace QuantumChests
                 {
                     var data = asset.AsDictionary<string, BigCraftableData>().Data;
 
-                    data[ModConstants.ChestId] = this.CreateChestData(ModConstants.ChestId, "chest", price: 2000, spriteIndex: 130);
-                    data[ModConstants.LargeChestId] = this.CreateChestData(ModConstants.LargeChestId, "bigchest", price: 4000, spriteIndex: 304);
+                    data[ModConstants.ChestId] = this.CreateChestData(ModConstants.ChestId, I18n.Chest_Name(), I18n.Chest_Description(), price: 2000, spriteIndex: 130);
+                    data[ModConstants.LargeChestId] = this.CreateChestData(ModConstants.LargeChestId, I18n.Bigchest_Name(), I18n.Bigchest_Description(), price: 4000, spriteIndex: 304);
                 });
             }
             else if (e.NameWithoutLocale.IsEquivalentTo("Data/CraftingRecipes"))
@@ -51,24 +51,25 @@ namespace QuantumChests
 
                     // "(BC)130" must stay qualified: unqualified "130" would resolve to the Object type first (Tuna),
                     // never reaching the BigCraftable Chest sharing that same numeric ID
-                    data[ModConstants.ChestId] = this.CreateRecipeData(ModConstants.ChestId, "337 2 787 2 (BC)130 2", "chest.name");
-                    data[ModConstants.LargeChestId] = this.CreateRecipeData(ModConstants.LargeChestId, "337 4 787 2 BigChest 2", "bigchest.name");
+                    data[ModConstants.ChestId] = this.CreateRecipeData(ModConstants.ChestId, "337 2 787 2 (BC)130 2", I18n.Chest_Name());
+                    data[ModConstants.LargeChestId] = this.CreateRecipeData(ModConstants.LargeChestId, "337 4 787 2 BigChest 2", I18n.Bigchest_Name());
                 });
             }
         }
 
         /// <summary>Build a <c>Data/BigCraftables</c> entry for one of our chest tiers.</summary>
         /// <param name="itemId">The unqualified item ID.</param>
-        /// <param name="translationPrefix">The shared prefix for this tier's "name" and "description" translation keys (e.g. <c>"chest"</c> for <c>"chest.name"</c>/<c>"chest.description"</c>).</param>
+        /// <param name="displayName">The translated display name.</param>
+        /// <param name="description">The translated description.</param>
         /// <param name="price">The purchase/sell price.</param>
         /// <param name="spriteIndex">The sprite index into vanilla's <c>TileSheets/Craftables</c>.</param>
-        private BigCraftableData CreateChestData(string itemId, string translationPrefix, int price, int spriteIndex)
+        private BigCraftableData CreateChestData(string itemId, string displayName, string description, int price, int spriteIndex)
         {
             return new BigCraftableData
             {
                 Name = itemId,
-                DisplayName = this.helper.Translation.Get($"{translationPrefix}.name"),
-                Description = this.helper.Translation.Get($"{translationPrefix}.description"),
+                DisplayName = displayName,
+                Description = description,
                 Price = price,
                 Fragility = 0,
                 CanBePlacedOutdoors = true,
@@ -83,10 +84,10 @@ namespace QuantumChests
         /// <summary>Build a <c>Data/CraftingRecipes</c> entry for one of our chest tiers.</summary>
         /// <param name="itemId">The unqualified item ID being crafted.</param>
         /// <param name="ingredients">The recipe's ingredient list, in vanilla's <c>"id count id count..."</c> format.</param>
-        /// <param name="nameTranslationKey">The translation key for the recipe's display name.</param>
-        private string CreateRecipeData(string itemId, string ingredients, string nameTranslationKey)
+        /// <param name="displayName">The translated display name for the recipe.</param>
+        private string CreateRecipeData(string itemId, string ingredients, string displayName)
         {
-            return $"{ingredients}/Home/{itemId} 2/true/null/{this.helper.Translation.Get(nameTranslationKey)}";
+            return $"{ingredients}/Home/{itemId} 2/true/null/{displayName}";
         }
     }
 }

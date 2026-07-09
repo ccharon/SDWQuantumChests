@@ -1,3 +1,4 @@
+using System.Linq;
 using QuantumChests.Patching;
 using StardewModdingAPI;
 
@@ -10,7 +11,9 @@ namespace QuantumChests
 
         public override void Entry(IModHelper helper)
         {
-            Service = new QuantumChestService(this.Monitor, helper.Translation, helper.Reflection, helper.Multiplayer);
+            I18n.Init(helper.Translation);
+
+            Service = new QuantumChestService(this.Monitor, helper.Reflection, helper.Multiplayer);
             Service.RegisterEvents(helper.Events);
 
             new ContentProvider(helper).RegisterEvents(helper.Events);
@@ -31,6 +34,9 @@ namespace QuantumChests
                 new ChestPairStackPatcher(),
                 new TrashCanDestructionPatcher()
             );
+
+            if (!helper.Translation.GetTranslations().Any())
+                this.Monitor.Log("The translation files in this mod's i18n folder seem to be missing. The mod will still work, but you'll see 'missing translation' messages. Try reinstalling the mod to fix this.", LogLevel.Warn);
 
             this.Monitor.Log("Quantum Chests loaded.", LogLevel.Debug);
         }

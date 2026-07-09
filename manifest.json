@@ -1,7 +1,7 @@
 {
   "Name": "Quantum Chests",
   "Author": "Nukulartechniker",
-  "Version": "0.1.1",
+  "Version": "%ProjectVersion%",
   "Description": "Craft pairs of entangled chests that always share the same inventory, no matter where they're placed.",
   "UniqueID": "Nukulartechniker.QuantumChests",
   "EntryDll": "QuantumChests.dll",
