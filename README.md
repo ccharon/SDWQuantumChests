@@ -43,3 +43,7 @@ See `ARCHITECTURE.md` for how it's built and why.
 - Stardew Valley 1.6.15, SMAPI 4.5.2 (built and tested against these versions).
 - No config options by design.
 - Should be safe alongside other mods; uses Harmony patches scoped tightly to its own two item IDs, so it shouldn't affect vanilla items, chests, or other mods' items.
+
+## See also
+
+- [Release notes](docs/release-notes.md)
