@@ -1,6 +1,8 @@
 # Release notes
 
-## Upcoming release
+## 0.1.2
+Released 09 July 2026 for Stardew Valley 1.6.
+
 - Improved false-collapse protection: a chest moved into the fridge, a shipping bin, the Lost & Found, a shop's resale stock, another mod's global-inventory storage, or lost on death (recoverable via Marlon) is now correctly recognized as still existing.
 - Improved performance when recoloring a chest (the partner lookup no longer scans the whole world).
 - Internal improvements: version is now single-sourced from the project file, translations are compile-time checked, and a warning is shown if the i18n folder is missing.
