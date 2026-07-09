@@ -91,61 +91,76 @@ namespace QuantumChests
                     count += Math.Max(obj.Stack, 1);
             }
 
-            this.ForEachRelevantLocation(location =>
+            foreach (GameLocation location in this.GetRelevantLocations())
             {
                 foreach (Debris d in location.debris)
                 {
                     if (d.item is SObject obj && Matches(obj, pairId))
                         count += Math.Max(obj.Stack, 1);
                 }
-                return true;
-            });
+            }
 
             return count;
         }
 
-        /// <summary>Every object placed on any map, carried by any farmer, stored in any of the game's out-of-the-way item stores (see <see cref="EnumerateAuxiliaryItemLists"/>), or nested inside any container (recursively). Deduplicated by reference, since two entangled chests share one underlying inventory and would otherwise double-count its contents. The coverage list mirrors vanilla's own ForEachItemHelper walk - see ARCHITECTURE.md before trimming or extending it.</summary>
+        /// <summary>Every object placed on any map, carried by any farmer, stored in any of the game's out-of-the-way item stores (see <see cref="EnumerateAuxiliaryItemLists"/>), or nested inside any container (recursively). Deduplicated by reference, since two entangled chests share one underlying inventory and would otherwise double-count its contents. Streamed lazily so first-match searches like <see cref="FindChestByPairId"/> stop scanning as soon as they find what they're after. The coverage list mirrors vanilla's own ForEachItemHelper walk - see ARCHITECTURE.md before trimming or extending it.</summary>
         private IEnumerable<SObject> EnumerateAllObjectsIncludingNested()
         {
-            var results = new List<SObject>();
             var visited = new HashSet<SObject>(ReferenceEqualityComparer.Instance);
 
-            this.ForEachRelevantLocation(location =>
+            foreach (GameLocation location in this.GetRelevantLocations())
             {
                 foreach (SObject obj in location.objects.Values)
-                    CollectRecursively(obj, results, visited);
+                {
+                    foreach (SObject found in WalkObject(obj, visited))
+                        yield return found;
+                }
 
                 // item stores the game keeps outside location.objects: furniture (dresser storage,
                 // items placed on tables), the farmhouse/island fridge (a Chest that lives in its own
                 // field, not in objects), and building-owned chests (Junimo hut output, mill input/output)
                 foreach (Furniture furniture in location.furniture)
-                    CollectRecursively(furniture, results, visited);
+                {
+                    foreach (SObject found in WalkObject(furniture, visited))
+                        yield return found;
+                }
 
                 if (location.GetFridge(onlyUnlocked: false) is Chest fridge)
-                    CollectRecursively(fridge, results, visited);
+                {
+                    foreach (SObject found in WalkObject(fridge, visited))
+                        yield return found;
+                }
 
                 foreach (Building building in location.buildings)
                 {
                     foreach (Chest chest in building.buildingChests)
-                        CollectRecursively(chest, results, visited);
+                    {
+                        foreach (SObject found in WalkObject(chest, visited))
+                            yield return found;
+                    }
                 }
-
-                return true;
-            });
+            }
 
             foreach (Farmer farmer in Game1.getAllFarmers())
             {
-                CollectFromList(farmer.Items, results, visited);
+                foreach (SObject found in WalkList(farmer.Items, visited))
+                    yield return found;
 
                 // an item briefly held on the mouse cursor mid-drag (e.g. picking one chest up to
                 // swap it with another in the inventory menu) isn't in farmer.Items, but it isn't
                 // destroyed either - count it, or the momentary gap looks identical to a real loss.
                 if (farmer.CursorSlotItem is SObject cursorObj)
-                    CollectRecursively(cursorObj, results, visited);
+                {
+                    foreach (SObject found in WalkObject(cursorObj, visited))
+                        yield return found;
+                }
 
                 // an item queued for Marlon's item-recovery service after dying
                 if (farmer.recoveredItem is SObject recoveredObj)
-                    CollectRecursively(recoveredObj, results, visited);
+                {
+                    foreach (SObject found in WalkObject(recoveredObj, visited))
+                        yield return found;
+                }
             }
 
             // some menus (e.g. the crafting tab) hold their in-progress drag item in their own
@@ -153,57 +168,55 @@ namespace QuantumChests
             // chest onto a slot there displaces the old occupant into that field, invisible to the
             // checks above, which otherwise looks identical to the chest being destroyed.
             if (this.GetActiveMenuHeldItem() is SObject menuHeldObj)
-                CollectRecursively(menuHeldObj, results, visited);
+            {
+                foreach (SObject found in WalkObject(menuHeldObj, visited))
+                    yield return found;
+            }
 
             foreach (IList<Item> list in this.EnumerateAuxiliaryItemLists())
-                CollectFromList(list, results, visited);
-
-            return results;
+            {
+                foreach (SObject found in WalkList(list, visited))
+                    yield return found;
+            }
         }
 
         /// <summary>Every plain item list the game (or another mod) keeps outside placed objects and farmer backpacks. An item sitting in any of these is stored, not destroyed - if the presence count can't see one of them, moving a chest there falsely collapses its pair (see ARCHITECTURE.md for the full inventory of these stores and how it was derived).</summary>
         private IEnumerable<IList<Item>> EnumerateAuxiliaryItemLists()
         {
-            var lists = new List<IList<Item>>();
-
-            this.ForEachRelevantLocation(location =>
+            foreach (GameLocation location in this.GetRelevantLocations())
             {
                 if (location is Farm farm)
                 {
                     // one shared bin, or one per farmer with separate wallets; getShippingBin picks.
                     // Duplicates are fine - the enumeration dedups items by reference anyway.
                     foreach (Farmer farmer in Game1.getAllFarmers())
-                        lists.Add(farm.getShippingBin(farmer));
+                        yield return farm.getShippingBin(farmer);
                 }
 
                 if (location is ShopLocation shop)
                 {
-                    lists.Add(shop.itemsFromPlayerToSell);
-                    lists.Add(shop.itemsToStartSellingTomorrow);
+                    yield return shop.itemsFromPlayerToSell;
+                    yield return shop.itemsToStartSellingTomorrow;
                 }
-
-                return true;
-            });
+            }
 
             // items dropped on death, recoverable via Marlon - losing them fires InventoryChanged,
             // so without this list a death while carrying a chest falsely collapses its pair
             foreach (Farmer farmer in Game1.getAllFarmers())
-                lists.Add(farmer.itemsLostLastDeath);
+                yield return farmer.itemsLostLastDeath;
 
             var team = Game1.player.team;
 
             // any global-inventory-backed storage: vanilla's own (e.g. Junimo chests) or another
             // mod's GetOrCreateGlobalInventory storage with no placed chest to recurse into
             foreach (Inventory inventory in team.globalInventories.Values)
-                lists.Add(inventory);
+                yield return inventory;
 
-            lists.Add(team.returnedDonations); // the Lost & Found box
-            lists.Add(team.luauIngredients);
-            lists.Add(team.grangeDisplay); // Stardew Valley Fair display - items come back after
+            yield return team.returnedDonations; // the Lost & Found box
+            yield return team.luauIngredients;
+            yield return team.grangeDisplay; // Stardew Valley Fair display - items come back after
             foreach (SpecialOrder order in team.specialOrders)
-                lists.Add(order.donatedItems);
-
-            return lists;
+                yield return order.donatedItems;
         }
 
         /// <summary>The item currently held mid-drag by the active menu, if any - checked by field name via reflection since different menus (e.g. <see cref="CraftingPage"/>) keep their own separate "heldItem" field rather than going through <see cref="Farmer.CursorSlotItem"/>.</summary>
@@ -218,55 +231,53 @@ namespace QuantumChests
             return this.reflection.GetField<Item>(menu, "heldItem", required: false)?.GetValue();
         }
 
-        /// <summary>Visit every location relevant to this player: the same as <see cref="Utility.ForEachLocation"/> for the host, but <see cref="IMultiplayerHelper.GetActiveLocations"/> for a non-host farmhand (see ARCHITECTURE.md for why <see cref="Game1.locations"/> alone isn't safe to scan for a farmhand).</summary>
-        private void ForEachRelevantLocation(Func<GameLocation, bool> action)
+        /// <summary>Every location relevant to this player: the same as <see cref="Utility.ForEachLocation"/> for the host, but <see cref="IMultiplayerHelper.GetActiveLocations"/> for a non-host farmhand (see ARCHITECTURE.md for why <see cref="Game1.locations"/> alone isn't safe to scan for a farmhand). The location refs are collected eagerly (vanilla's walk is callback-only, and locations number in the dozens); the expensive part - object/item enumeration - stays lazy downstream.</summary>
+        private IEnumerable<GameLocation> GetRelevantLocations()
         {
+            var locations = new List<GameLocation>();
+
             if (Context.IsMainPlayer)
             {
-                Utility.ForEachLocation(action, includeInteriors: true, includeGenerated: true);
-                return;
+                Utility.ForEachLocation(location =>
+                {
+                    locations.Add(location);
+                    return true;
+                }, includeInteriors: true, includeGenerated: true);
+                return locations;
             }
 
             foreach (GameLocation location in this.multiplayer.GetActiveLocations())
             {
-                if (!action(location))
-                    return;
-
-                bool shouldContinue = true;
+                locations.Add(location);
                 location.ForEachInstancedInterior(interior =>
                 {
-                    if (action(interior))
-                        return true;
-                    shouldContinue = false;
-                    return false;
+                    locations.Add(interior);
+                    return true;
                 });
-                if (!shouldContinue)
-                    return;
             }
 
-            foreach (MineShaft mine in MineShaft.activeMines)
-            {
-                if (!action(mine))
-                    return;
-            }
+            locations.AddRange(MineShaft.activeMines);
+            locations.AddRange(VolcanoDungeon.activeLevels);
 
-            foreach (VolcanoDungeon volcano in VolcanoDungeon.activeLevels)
-            {
-                if (!action(volcano))
-                    return;
-            }
+            return locations;
         }
 
-        private static void CollectRecursively(SObject obj, List<SObject> results, HashSet<SObject> visited)
+        private static IEnumerable<SObject> WalkObject(SObject obj, HashSet<SObject> visited)
         {
             if (!visited.Add(obj))
-                return;
-            results.Add(obj);
+                yield break;
+            yield return obj;
 
             if (obj is Chest chest)
-                CollectFromList(chest.GetItemsForPlayer(), results, visited);
+            {
+                foreach (SObject found in WalkList(chest.GetItemsForPlayer(), visited))
+                    yield return found;
+            }
             else if (obj is StorageFurniture storage)
-                CollectFromList(storage.heldItems, results, visited);
+            {
+                foreach (SObject found in WalkList(storage.heldItems, visited))
+                    yield return found;
+            }
 
             // deliberately NOT Sign.displayItem: a sign shows a getOne() copy (pair ID and all)
             // without consuming the real item, so counting it would inflate the pair count and
@@ -275,15 +286,21 @@ namespace QuantumChests
             // machines, auto-grabbers, and tables hold their content in heldObject (an auto-grabber's
             // whole storage is a Chest sitting in heldObject)
             if (obj.heldObject.Value is SObject held)
-                CollectRecursively(held, results, visited);
+            {
+                foreach (SObject found in WalkObject(held, visited))
+                    yield return found;
+            }
         }
 
-        private static void CollectFromList(IEnumerable<Item?> items, List<SObject> results, HashSet<SObject> visited)
+        private static IEnumerable<SObject> WalkList(IEnumerable<Item?> items, HashSet<SObject> visited)
         {
             foreach (Item? item in items)
             {
                 if (item is SObject obj)
-                    CollectRecursively(obj, results, visited);
+                {
+                    foreach (SObject found in WalkObject(obj, visited))
+                        yield return found;
+                }
             }
         }
 
@@ -333,19 +350,21 @@ namespace QuantumChests
 
         private void WireAllPlacedChests()
         {
-            this.ForEachRelevantLocation(location =>
+            foreach (GameLocation location in this.GetRelevantLocations())
             {
                 foreach (SObject obj in location.objects.Values)
                 {
                     if (obj is Chest chest)
                         this.EnsureColorSyncWired(chest);
                 }
-                return true;
-            });
+            }
         }
 
         private void GrantRecipesIfNeeded()
         {
+            // Game1.player is safe in split-screen: SMAPI raises SaveLoaded once per screen with
+            // Game1.player scoped to that screen's player, so every split-screen player is granted
+            // the recipes too (remote farmhands get them from their own game instance's SaveLoaded)
             Game1.player.craftingRecipes.TryAdd(ModConstants.ChestId, 0);
             Game1.player.craftingRecipes.TryAdd(ModConstants.LargeChestId, 0);
         }
@@ -389,24 +408,20 @@ namespace QuantumChests
         }
 
         /// <summary>Remove an object wherever it actually is - placed on a map, held directly in a farmer's inventory, nested inside any container found by <see cref="EnumerateAllObjectsIncludingNested"/>, or sitting in any of the auxiliary item stores from <see cref="EnumerateAuxiliaryItemLists"/>.</summary>
+        /// <remarks>Mutating mid-enumeration is safe here only because every removal immediately returns - the lazy enumerators are never advanced past a mutation.</remarks>
         private bool RemoveObjectFromWherever(SObject target)
         {
-            bool removedFromMap = false;
-            this.ForEachRelevantLocation(location =>
+            foreach (GameLocation location in this.GetRelevantLocations())
             {
                 foreach (KeyValuePair<Vector2, SObject> pair in location.objects.Pairs)
                 {
                     if (ReferenceEquals(pair.Value, target))
                     {
                         location.objects.Remove(pair.Key);
-                        removedFromMap = true;
-                        return false;
+                        return true;
                     }
                 }
-                return true;
-            });
-            if (removedFromMap)
-                return true;
+            }
 
             foreach (Farmer farmer in Game1.getAllFarmers())
             {

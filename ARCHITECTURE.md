@@ -164,7 +164,13 @@ testing rather than by inspection alone:
   top-level inventory, recursing into any `Chest`-like container's stored items (a quantum chest can be stored
   inside a regular chest, or even inside its own partner — both are valid states, not bugs). Deduplicated by
   reference (`ReferenceEqualityComparer`) because two entangled chests share one underlying `Inventory` object
-  and would otherwise double-count its contents when both are scanned.
+  and would otherwise double-count its contents when both are scanned. It's a lazy iterator chain (`yield
+  return` all the way down, modeled on how `Pathoschild.Stardew.ChestsAnywhere` streams its chest search), so
+  first-match consumers stop scanning at the first hit — that matters most for `FindChestByPairId`, which runs
+  on every `playerChoiceColor` change and usually finds the partner long before the walk would reach the
+  auxiliary stores. `CountPairMembers` still consumes the full sequence; only evaluation timing changed, not
+  coverage or order. `RemoveObjectFromWherever` also iterates lazily, which is safe only because every removal
+  immediately `return`s — the enumerators are never advanced past a mutation.
 - `CountPairMembers` also scans `location.debris` (`Debris.item`) to account for the brief window between an
   emptied chest being removed from the map and the player walking over the resulting pickup-debris to actually
   collect it — without this, that window looks identical to "destroyed."
@@ -246,9 +252,9 @@ Color sync (`EnsureColorSyncWired`) hooks `Chest.playerChoiceColor.fieldChangeEv
 `ConditionalWeakTable<Chest, object>` so re-wiring on save load / warp / placement is idempotent and doesn't
 leak memory for chests that no longer exist.
 
-### Multiplayer: `ForEachRelevantLocation`
+### Multiplayer: `GetRelevantLocations`
 
-`ForEachRelevantLocation` is what every scan above actually walks, instead of calling `Utility.ForEachLocation`
+`GetRelevantLocations` is what every scan above actually walks, instead of calling `Utility.ForEachLocation`
 directly. For the host it's the same thing, but for a non-host farmhand, `Game1.locations` can hold stale,
 no-longer-synced snapshots of locations that client isn't actively tracking (e.g. another farmhand's cabin
 they've never entered) — scanning those could under- or over-count a pair and collapse it based on outdated
@@ -256,6 +262,11 @@ data. `IMultiplayerHelper.GetActiveLocations()` (checked via `Context.IsMainPlay
 actively kept in sync for the current client, so that's used instead when not the host. This distinction was
 found by comparing against how `Pathoschild.Stardew.ChestsAnywhere` handles the same host/farmhand split in its
 own location-walking code.
+
+It returns an eagerly collected `List<GameLocation>` rather than a lazy iterator: vanilla's
+`Utility.ForEachLocation` is callback-only (no enumerable form to wrap), and a save has only dozens of
+locations, so collecting the refs is cheap. The laziness that actually pays off — enumerating each location's
+objects and nested items — happens downstream in `EnumerateAllObjectsIncludingNested`.
 
 ## Content (`ContentProvider`)
 
