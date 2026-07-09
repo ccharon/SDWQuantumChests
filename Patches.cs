@@ -51,10 +51,10 @@ namespace QuantumChests
             foreach (string key in __instance.modData.Keys)
                 chest.modData[key] = __instance.modData[key];
 
-            if (chest.modData.TryGetValue(ModConstants.PairIdKey, out string? pairId) && !string.IsNullOrEmpty(pairId))
+            if (chest.TryGetPairId(out string? pairId))
                 chest.GlobalInventoryId = pairId;
 
-            Chest? existingPartner = !string.IsNullOrEmpty(pairId) ? ModEntry.Service.FindChestByPairId(pairId) : null;
+            Chest? existingPartner = pairId != null ? ModEntry.Service.FindChestByPairId(pairId) : null;
             Color fallbackColor = PairColorStorage.TryGet(chest.modData, out Color storedColor) ? storedColor : ModConstants.DefaultTint;
             chest.playerChoiceColor.Value = existingPartner?.playerChoiceColor.Value ?? fallbackColor;
 
@@ -414,7 +414,7 @@ namespace QuantumChests
                 return;
             if (!ModConstants.TryGetTier(__result.QualifiedItemId, out _))
                 return;
-            if (__result.modData.ContainsKey(ModConstants.PairIdKey))
+            if (__result.TryGetPairId(out _))
                 return;
 
             __result.modData[ModConstants.PairIdKey] = Guid.NewGuid().ToString("N");
@@ -450,10 +450,9 @@ namespace QuantumChests
             if (other is not Item otherItem || otherItem.QualifiedItemId != __instance.QualifiedItemId)
                 return;
 
-            __instance.modData.TryGetValue(ModConstants.PairIdKey, out string? pairIdA);
-            otherItem.modData.TryGetValue(ModConstants.PairIdKey, out string? pairIdB);
-
-            __result = !string.IsNullOrEmpty(pairIdA) && pairIdA == pairIdB;
+            __result = __instance.TryGetPairId(out string? pairIdA)
+                && otherItem.TryGetPairId(out string? pairIdB)
+                && pairIdA == pairIdB;
         }
     }
 
@@ -477,7 +476,7 @@ namespace QuantumChests
 
         private static void Postfix(Item item)
         {
-            if (item.modData.TryGetValue(ModConstants.PairIdKey, out string? pairId) && !string.IsNullOrEmpty(pairId))
+            if (item.TryGetPairId(out string? pairId))
                 ModEntry.Service.HandlePotentialDestruction(pairId);
         }
     }

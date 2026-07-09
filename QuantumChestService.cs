@@ -46,7 +46,7 @@ namespace QuantumChests
         /// <summary>Wire up a freshly-placed or freshly-loaded chest so color changes propagate to its partner.</summary>
         public void EnsureColorSyncWired(Chest chest)
         {
-            if (!chest.modData.ContainsKey(ModConstants.PairIdKey))
+            if (!chest.TryGetPairId(out _))
                 return;
             if (this.wiredForColorSync.TryGetValue(chest, out _))
                 return;
@@ -58,7 +58,7 @@ namespace QuantumChests
 
         private void OnChestColorChanged(Chest chest, Color oldValue, Color newValue)
         {
-            if (!chest.modData.TryGetValue(ModConstants.PairIdKey, out string? pairId) || string.IsNullOrEmpty(pairId))
+            if (!chest.TryGetPairId(out string? pairId))
                 return;
 
             Chest? partner = this.FindChestByPairId(pairId, excluding: chest);
@@ -289,7 +289,7 @@ namespace QuantumChests
 
         private static bool Matches(SObject obj, string pairId)
         {
-            return obj.modData.TryGetValue(ModConstants.PairIdKey, out string? otherPairId) && otherPairId == pairId;
+            return obj.TryGetPairId(out string? otherPairId) && otherPairId == pairId;
         }
 
         private void OnObjectListChanged(object? sender, StardewModdingAPI.Events.ObjectListChangedEventArgs e)
@@ -302,7 +302,7 @@ namespace QuantumChests
 
             foreach (var pair in e.Removed)
             {
-                if (pair.Value.modData.TryGetValue(ModConstants.PairIdKey, out string? pairId) && !string.IsNullOrEmpty(pairId))
+                if (pair.Value.TryGetPairId(out string? pairId))
                     this.HandlePotentialDestruction(pairId);
             }
         }
@@ -311,7 +311,7 @@ namespace QuantumChests
         {
             foreach (Item item in e.Removed)
             {
-                if (item is SObject obj && obj.modData.TryGetValue(ModConstants.PairIdKey, out string? pairId) && !string.IsNullOrEmpty(pairId))
+                if (item is SObject obj && obj.TryGetPairId(out string? pairId))
                     this.HandlePotentialDestruction(pairId);
             }
         }
