@@ -175,6 +175,13 @@ testing rather than by inspection alone:
   field instead of `Game1.player.CursorSlotItem` — swapping a freshly-crafted chest onto a slot there displaces
   the old occupant into that field, invisible to the checks above unless specifically read via reflection
   (`GetActiveMenuHeldItem`).
+- The general failure mode behind several of these: **any storage the presence-scan doesn't know about is
+  indistinguishable from destruction**. Moving a chest into an unscanned store removes it from `farmer.Items`
+  or `location.objects`, fires `Player.InventoryChanged`/`World.ObjectListChanged`, the recount can't find it,
+  and a perfectly intact pair falsely collapses — deleting its shared contents. This surfaced first via
+  another mod's `GetOrCreateGlobalInventory`-backed storage (a courier-style mod temporarily holding
+  handed-over items in its own global inventory), and turned out to apply to a whole list of vanilla stores
+  too. See "Where an item can live" below for the full coverage list and how it was derived.
 - Every inventory menu's trash can (`MenuWithInventory`, `InventoryPage`, `CraftingPage`, `JunimoNoteMenu`)
   discards its held item via `Utility.trashItem` directly — this never touches `Farmer.Items` or
   `GameLocation.objects`, so neither `Player.InventoryChanged` nor `World.ObjectListChanged` fires for it.
@@ -183,9 +190,57 @@ testing rather than by inspection alone:
   chest and observing its partner only vanish once later picked up, rather than immediately).
 
 If a pair drops to exactly 1 remaining member, `CollapsePair` removes the survivor too (wherever it actually is
-— map, top-level inventory, or nested in a container, via `RemoveObjectFromWherever`) and discards the shared
-inventory entirely; contents are **not** preserved. This is intentional flavor ("the danger of quantum
-mechanics"), not a bug to fix by making it safer.
+— map, top-level inventory, nested in a container, or in any auxiliary store, via `RemoveObjectFromWherever`)
+and discards the shared inventory entirely; contents are **not** preserved. This is intentional flavor ("the
+danger of quantum mechanics"), not a bug to fix by making it safer.
+
+### Where an item can live: the full presence-scan coverage list
+
+The authoritative checklist for "every place the game can keep an `Item` instance" is vanilla's own
+`StardewValley.Internal.ForEachItemHelper.ForEachItemInWorld` / `ForEachItemInLocation` (decompile it — it's
+what the game itself uses for save migrations that must touch every item). `EnumerateAllObjectsIncludingNested`
+plus `EnumerateAuxiliaryItemLists` deliberately mirror its coverage, with a few additions and exclusions listed
+below. **If a game update adds a new item store, re-diff against `ForEachItemHelper` and extend the scan** —
+any store the scan can't see falsely collapses a pair moved into it.
+
+Covered, mirroring vanilla's walk (each verified against the decompiled 1.6 source):
+
+- `location.objects` recursively — with `Object.heldObject` followed at every level (matching
+  `Object.ForEachItem`): machine contents, and notably the **auto-grabber**, whose entire storage is a `Chest`
+  sitting in `heldObject`.
+- `location.furniture` — `StorageFurniture.heldItems` (dressers) and items placed on tables (again
+  `heldObject`).
+- `location.GetFridge(onlyUnlocked: false)` — the farmhouse/island fridge is a `Chest` in its own field on
+  `FarmHouse`/`IslandFarmHouse`, **not** in `location.objects`; without this, putting a chest in the fridge
+  collapsed its pair.
+- `building.buildingChests` for every building — Junimo hut output, mill input/output.
+- `Farm.getShippingBin(farmer)` per farmer — `sharedShippingBin` or per-farmer `personalShippingBin` depending
+  on `useSeparateWallets`; iterated per farmer with duplicates handled by the reference-dedup. (Vanilla's
+  `ForEachItemInWorld` itself skips the bin; we cover it anyway.)
+- `ShopLocation.itemsFromPlayerToSell` / `itemsToStartSellingTomorrow` — items sold to a shop for resale.
+- `farmer.itemsLostLastDeath` and `farmer.recoveredItem` — death loss / Marlon's item-recovery service. Dying
+  fires `InventoryChanged` for the lost items, so before this was scanned, **dying while carrying a chest
+  falsely collapsed its pair** even though the item was recoverable.
+- `team.globalInventories.Values` — every global inventory: vanilla's (Junimo chests) or **any other mod's**
+  `GetOrCreateGlobalInventory` storage, which has no placed chest anywhere to recurse into. Iterate the
+  *values* (item lists); the keys are just IDs, including each pair's own shared-inventory ID. The
+  reference-dedup keeps a pair's own shared inventory from double-counting when it's reachable both here and
+  via a placed chest's `GetItemsForPlayer()`.
+- `team.returnedDonations` (the Lost & Found box) and `specialOrders[*].donatedItems`.
+- `team.luauIngredients` and `team.grangeDisplay` (fair display items are returned to the player afterward) —
+  these two are real item stores that even vanilla's `ForEachItemInWorld` doesn't walk.
+
+Deliberately **excluded**, don't "fix" these without re-checking the reasoning:
+
+- `Sign.displayItem`: a sign stores `currentItem.getOne()` — a *copy* (with `modData`, so it carries the pair
+  ID) — **without consuming the shown item** (verified in the decompiled `Sign.checkForAction`). Counting it
+  would inflate the pair count and mask a real loss.
+- Equipment slots (`shirtItem`/`pantsItem`/`hat`/`boots`/rings), `toolBeingUpgraded`, and NPC hats
+  (pet/horse/child): typed slots that can never hold a big-craftable `Object`.
+
+`RemoveObjectFromWherever` walks the same coverage (chest contents, `StorageFurniture.heldItems`,
+`heldObject`, and every auxiliary list) so a *genuine* collapse can remove the survivor from any of these
+places, not just map/backpack/chest.
 
 Color sync (`EnsureColorSyncWired`) hooks `Chest.playerChoiceColor.fieldChangeEvent` per chest, guarded by a
 `ConditionalWeakTable<Chest, object>` so re-wiring on save load / warp / placement is idempotent and doesn't

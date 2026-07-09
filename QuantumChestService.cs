@@ -6,10 +6,12 @@ using Netcode;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
+using StardewValley.Buildings;
 using StardewValley.Inventories;
 using StardewValley.Locations;
 using StardewValley.Menus;
 using StardewValley.Objects;
+using StardewValley.SpecialOrders;
 using SObject = StardewValley.Object;
 
 namespace QuantumChests
@@ -104,7 +106,7 @@ namespace QuantumChests
             return count;
         }
 
-        /// <summary>Every object placed on any map, carried by any farmer, or nested inside any chest-like container's storage (recursively). Deduplicated by reference, since two entangled chests share one underlying inventory and would otherwise double-count its contents.</summary>
+        /// <summary>Every object placed on any map, carried by any farmer, stored in any of the game's out-of-the-way item stores (see <see cref="EnumerateAuxiliaryItemLists"/>), or nested inside any container (recursively). Deduplicated by reference, since two entangled chests share one underlying inventory and would otherwise double-count its contents. The coverage list mirrors vanilla's own ForEachItemHelper walk - see ARCHITECTURE.md before trimming or extending it.</summary>
         private IEnumerable<SObject> EnumerateAllObjectsIncludingNested()
         {
             var results = new List<SObject>();
@@ -114,22 +116,38 @@ namespace QuantumChests
             {
                 foreach (SObject obj in location.objects.Values)
                     CollectRecursively(obj, results, visited);
+
+                // item stores the game keeps outside location.objects: furniture (dresser storage,
+                // items placed on tables), the farmhouse/island fridge (a Chest that lives in its own
+                // field, not in objects), and building-owned chests (Junimo hut output, mill input/output)
+                foreach (Furniture furniture in location.furniture)
+                    CollectRecursively(furniture, results, visited);
+
+                if (location.GetFridge(onlyUnlocked: false) is Chest fridge)
+                    CollectRecursively(fridge, results, visited);
+
+                foreach (Building building in location.buildings)
+                {
+                    foreach (Chest chest in building.buildingChests)
+                        CollectRecursively(chest, results, visited);
+                }
+
                 return true;
             });
 
             foreach (Farmer farmer in Game1.getAllFarmers())
             {
-                foreach (Item? item in farmer.Items)
-                {
-                    if (item is SObject obj)
-                        CollectRecursively(obj, results, visited);
-                }
+                CollectFromList(farmer.Items, results, visited);
 
                 // an item briefly held on the mouse cursor mid-drag (e.g. picking one chest up to
                 // swap it with another in the inventory menu) isn't in farmer.Items, but it isn't
                 // destroyed either - count it, or the momentary gap looks identical to a real loss.
                 if (farmer.CursorSlotItem is SObject cursorObj)
                     CollectRecursively(cursorObj, results, visited);
+
+                // an item queued for Marlon's item-recovery service after dying
+                if (farmer.recoveredItem is SObject recoveredObj)
+                    CollectRecursively(recoveredObj, results, visited);
             }
 
             // some menus (e.g. the crafting tab) hold their in-progress drag item in their own
@@ -139,7 +157,55 @@ namespace QuantumChests
             if (this.GetActiveMenuHeldItem() is SObject menuHeldObj)
                 CollectRecursively(menuHeldObj, results, visited);
 
+            foreach (IList<Item> list in this.EnumerateAuxiliaryItemLists())
+                CollectFromList(list, results, visited);
+
             return results;
+        }
+
+        /// <summary>Every plain item list the game (or another mod) keeps outside placed objects and farmer backpacks. An item sitting in any of these is stored, not destroyed - if the presence count can't see one of them, moving a chest there falsely collapses its pair (see ARCHITECTURE.md for the full inventory of these stores and how it was derived).</summary>
+        private IEnumerable<IList<Item>> EnumerateAuxiliaryItemLists()
+        {
+            var lists = new List<IList<Item>>();
+
+            this.ForEachRelevantLocation(location =>
+            {
+                if (location is Farm farm)
+                {
+                    // one shared bin, or one per farmer with separate wallets; getShippingBin picks.
+                    // Duplicates are fine - the enumeration dedups items by reference anyway.
+                    foreach (Farmer farmer in Game1.getAllFarmers())
+                        lists.Add(farm.getShippingBin(farmer));
+                }
+
+                if (location is ShopLocation shop)
+                {
+                    lists.Add(shop.itemsFromPlayerToSell);
+                    lists.Add(shop.itemsToStartSellingTomorrow);
+                }
+
+                return true;
+            });
+
+            // items dropped on death, recoverable via Marlon - losing them fires InventoryChanged,
+            // so without this list a death while carrying a chest falsely collapses its pair
+            foreach (Farmer farmer in Game1.getAllFarmers())
+                lists.Add(farmer.itemsLostLastDeath);
+
+            var team = Game1.player.team;
+
+            // any global-inventory-backed storage: vanilla's own (e.g. Junimo chests) or another
+            // mod's GetOrCreateGlobalInventory storage with no placed chest to recurse into
+            foreach (Inventory inventory in team.globalInventories.Values)
+                lists.Add(inventory);
+
+            lists.Add(team.returnedDonations); // the Lost & Found box
+            lists.Add(team.luauIngredients);
+            lists.Add(team.grangeDisplay); // Stardew Valley Fair display - items come back after
+            foreach (SpecialOrder order in team.specialOrders)
+                lists.Add(order.donatedItems);
+
+            return lists;
         }
 
         /// <summary>The item currently held mid-drag by the active menu, if any - checked by field name via reflection since different menus (e.g. <see cref="CraftingPage"/>) keep their own separate "heldItem" field rather than going through <see cref="Farmer.CursorSlotItem"/>.</summary>
@@ -200,12 +266,26 @@ namespace QuantumChests
             results.Add(obj);
 
             if (obj is Chest chest)
+                CollectFromList(chest.GetItemsForPlayer(), results, visited);
+            else if (obj is StorageFurniture storage)
+                CollectFromList(storage.heldItems, results, visited);
+
+            // deliberately NOT Sign.displayItem: a sign shows a getOne() copy (pair ID and all)
+            // without consuming the real item, so counting it would inflate the pair count and
+            // mask a real loss (see ARCHITECTURE.md)
+
+            // machines, auto-grabbers, and tables hold their content in heldObject (an auto-grabber's
+            // whole storage is a Chest sitting in heldObject)
+            if (obj.heldObject.Value is SObject held)
+                CollectRecursively(held, results, visited);
+        }
+
+        private static void CollectFromList(IEnumerable<Item?> items, List<SObject> results, HashSet<SObject> visited)
+        {
+            foreach (Item? item in items)
             {
-                foreach (Item? stored in chest.GetItemsForPlayer())
-                {
-                    if (stored is SObject storedObj)
-                        CollectRecursively(storedObj, results, visited);
-                }
+                if (item is SObject obj)
+                    CollectRecursively(obj, results, visited);
             }
         }
 
@@ -310,7 +390,7 @@ namespace QuantumChests
             this.monitor.Log($"A quantum chest pair collapsed: its partner was lost, so the survivor and their shared contents vanished (pair {pairId}).", LogLevel.Info);
         }
 
-        /// <summary>Remove an object wherever it actually is - placed on a map, held directly in a farmer's inventory, or nested inside some other chest-like container's storage (searched recursively).</summary>
+        /// <summary>Remove an object wherever it actually is - placed on a map, held directly in a farmer's inventory, nested inside any container found by <see cref="EnumerateAllObjectsIncludingNested"/>, or sitting in any of the auxiliary item stores from <see cref="EnumerateAuxiliaryItemLists"/>.</summary>
         private bool RemoveObjectFromWherever(SObject target)
         {
             bool removedFromMap = false;
@@ -337,20 +417,43 @@ namespace QuantumChests
                     farmer.removeItemFromInventory(target);
                     return true;
                 }
+
+                if (ReferenceEquals(farmer.recoveredItem, target))
+                {
+                    farmer.recoveredItem = null;
+                    return true;
+                }
             }
 
             foreach (SObject obj in this.EnumerateAllObjectsIncludingNested())
             {
-                if (obj is Chest container && RemoveFromContainer(container, target))
+                bool removed = obj switch
+                {
+                    Chest container => RemoveFromList(container.GetItemsForPlayer(), target),
+                    StorageFurniture storage => RemoveFromList(storage.heldItems, target),
+                    _ => false,
+                };
+                if (removed)
+                    return true;
+
+                if (ReferenceEquals(obj.heldObject.Value, target))
+                {
+                    obj.heldObject.Value = null;
+                    return true;
+                }
+            }
+
+            foreach (IList<Item> list in this.EnumerateAuxiliaryItemLists())
+            {
+                if (RemoveFromList(list, target))
                     return true;
             }
 
             return false;
         }
 
-        private static bool RemoveFromContainer(Chest container, SObject target)
+        private static bool RemoveFromList(IList<Item> items, SObject target)
         {
-            IInventory items = container.GetItemsForPlayer();
             for (int i = 0; i < items.Count; i++)
             {
                 if (ReferenceEquals(items[i], target))
